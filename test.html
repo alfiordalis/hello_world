@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caesar Cipher Codebreaker</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9fafb;
+            color: #333;
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h2 { margin-top: 0; color: #2c3e50; }
+        label { font-weight: bold; margin-bottom: 0.5rem; display: block; }
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: monospace;
+            resize: vertical;
+        }
+        .mode-selector {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .mode-selector label { font-weight: normal; margin-bottom: 0; cursor: pointer; }
+        .input-group { margin-bottom: 1.5rem; }
+        input[type="number"] {
+            padding: 0.5rem;
+            width: 100px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .help-text {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-left: 10px;
+        }
+        button {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        button:hover { background-color: #2563eb; }
+        
+        /* New styling for the copy button */
+        #copyBtn {
+            background-color: #10b981;
+            margin-top: 1rem;
+            display: none; /* Hidden by default until there is output */
+        }
+        #copyBtn:hover { background-color: #059669; }
+
+        .output-container {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            min-height: 50px;
+            word-break: break-all;
+        }
+        .brute-force-line { border-bottom: 1px solid #334155; padding-bottom: 5px; margin-bottom: 5px; }
+        .brute-force-line:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+
+    <h2>Caesar Cipher Codebreaker</h2>
+    
+    <label for="textInput">Message:</label>
+    <textarea id="textInput" placeholder="Paste your text here..."></textarea>
+
+    <div class="mode-selector">
+        <label><input type="radio" name="mode" value="encrypt" checked> Plain Text (Encrypt)</label>
+        <label><input type="radio" name="mode" value="decrypt"> Encrypted Text (Decrypt)</label>
+    </div>
+
+    <div class="input-group">
+        <label for="shiftInput">Shift Number:</label>
+        <input type="number" id="shiftInput" min="1" max="25" placeholder="e.g., 3">
+        <span id="shiftHelp" class="help-text">Required to encrypt the message.</span>
+    </div>
+
+    <button id="processBtn">Process Text</button>
+
+    <div class="output-container" id="outputArea">
+        <em>Output will appear here...</em>
+    </div>
+    
+    <button id="copyBtn">Copy to Clipboard</button>
+
+    <script>
+        // DOM Elements
+        const textInput = document.getElementById('textInput');
+        const modeRadios = document.getElementsByName('mode');
+        const shiftInput = document.getElementById('shiftInput');
+        const shiftHelp = document.getElementById('shiftHelp');
+        const processBtn = document.getElementById('processBtn');
+        const outputArea = document.getElementById('outputArea');
+        const copyBtn = document.getElementById('copyBtn');
+
+        // Update help text dynamically based on the selected mode
+        modeRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (document.querySelector('input[name="mode"]:checked').value === 'encrypt') {
+                    shiftHelp.textContent = "Required to encrypt the message.";
+                } else {
+                    shiftHelp.textContent = "Leave blank to preview, or enter a known shift to decrypt.";
+                }
+            });
+        });
+
+        // Core Caesar Shift Math Function
+        function applyCaesar(text, shiftAmount) {
+            let result = "";
+            let normalizedShift = ((shiftAmount % 26) + 26) % 26;
+            
+            for (let i = 0; i < text.length; i++) {
+                let char = text[i];
+                if (char.match(/[a-z]/i)) {
+                    let code = text.charCodeAt(i);
+                    let base = (code >= 65 && code <= 90) ? 65 : 97;
+                    result += String.fromCharCode(((code - base + normalizedShift) % 26) + base);
+                } else {
+                    result += char;
+                }
+            }
+            return result;
+        }
+
+        // Handle the Process Button Click
+        processBtn.addEventListener('click', () => {
+            const text = textInput.value;
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            const shiftValue = shiftInput.value;
+
+            // Hide copy button initially on new process attempt
+            copyBtn.style.display = 'none';
+
+            if (!text) {
+                outputArea.innerHTML = "<em>Please enter some text first!</em>";
+                return;
+            }
+
+            if (mode === 'encrypt') {
+                if (!shiftValue) {
+                    outputArea.innerHTML = "<em>Error: A shift number is required to encrypt plain text.</em>";
+                    return;
+                }
+                outputArea.textContent = applyCaesar(text, parseInt(shiftValue));
+                copyBtn.style.display = 'block'; // Show copy button
+            } 
+            else if (mode === 'decrypt') {
+                if (shiftValue) {
+                    outputArea.textContent = applyCaesar(text, -parseInt(shiftValue));
+                    copyBtn.style.display = 'block'; // Show copy button
+                } else {
+                    let bruteForceHTML = "<strong>Brute Force Preview (First 20 chars):</strong><br><br>";
+                    let previewText = text.substring(0, 20); 
+                    
+                    for (let i = 1; i <= 25; i++) {
+                        let attempt = applyCaesar(previewText, -i);
+                        bruteForceHTML += `<div class="brute-force-line"><strong>Shift ${i}:</strong> ${attempt}</div>`;
+                    }
+                    outputArea.innerHTML = bruteForceHTML;
+                    copyBtn.style.display = 'block'; // Show copy button
+                }
+            }
+        });
+
+        // Handle the Copy Button Click
+        copyBtn.addEventListener('click', () => {
+            // navigator.clipboard requires a secure context (HTTPS) or localhost
+            // innerText grabs the readable text without HTML tags (great for the brute force list)
+            navigator.clipboard.writeText(outputArea.innerText).then(() => {
+                const originalText = copyBtn.innerText;
+                copyBtn.innerText = "Copied!";
+                copyBtn.style.backgroundColor = "#059669"; // Darker green for feedback
+                
+                // Revert button text and color after 2 seconds
+                setTimeout(() => {
+                    copyBtn.innerText = originalText;
+                    copyBtn.style.backgroundColor = "";
+                }, 2000);
+            }).catch(err => {
+                console.error("Failed to copy text: ", err);
+                alert("Failed to copy to clipboard.");
+            });
+        });
+    </script>
+</body>
+</html>
